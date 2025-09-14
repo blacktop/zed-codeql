@@ -1,0 +1,18 @@
+name = "CodeQL"
+grammar = "ql"
+path_suffixes = ["ql", "qll", "qlref", "dbscheme"]
+line_comments = ["//"]
+block_comment = ["/**", "*/"]
+brackets = [
+    { start = "{", end = "}", close = true, newline = true },
+    { start = "[", end = "]", close = true, newline = false },
+    { start = "(", end = ")", close = true, newline = false }
+]
+auto_pairs = [
+    { start = "{", end = "}" },
+    { start = "[", end = "]" },
+    { start = "(", end = ")" },
+    { start = "\"", end = "\"" },
+    { start = "'", end = "'" },
+    { start = "`", end = "`" }
+]

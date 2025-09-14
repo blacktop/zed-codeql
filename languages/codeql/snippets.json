@@ -1,0 +1,159 @@
+{
+  "class": {
+    "prefix": "class",
+    "body": [
+      "class ${1:ClassName} extends ${2:BaseClass} {",
+      "  ${3:ClassName}() {",
+      "    ${4:// Constructor predicate}",
+      "  }",
+      "}"
+    ],
+    "description": "CodeQL class definition"
+  },
+  "predicate": {
+    "prefix": "pred",
+    "body": [
+      "predicate ${1:predicateName}(${2:params}) {",
+      "  ${3:// predicate body}",
+      "}"
+    ],
+    "description": "CodeQL predicate"
+  },
+  "characteristic_predicate": {
+    "prefix": "charpred",
+    "body": [
+      "${1:ReturnType} ${2:predicateName}() {",
+      "  ${3:// characteristic predicate body}",
+      "}"
+    ],
+    "description": "CodeQL characteristic predicate"
+  },
+  "select": {
+    "prefix": "select",
+    "body": [
+      "from ${1:Type} ${2:var}",
+      "where ${3:condition}",
+      "select ${4:var}"
+    ],
+    "description": "CodeQL select query"
+  },
+  "import": {
+    "prefix": "import",
+    "body": "import ${1:module}",
+    "description": "Import statement"
+  },
+  "exists": {
+    "prefix": "exists",
+    "body": [
+      "exists(${1:Type} ${2:var} |",
+      "  ${3:condition}",
+      ")"
+    ],
+    "description": "Exists quantifier"
+  },
+  "forall": {
+    "prefix": "forall",
+    "body": [
+      "forall(${1:Type} ${2:var} |",
+      "  ${3:condition} |",
+      "  ${4:implies}",
+      ")"
+    ],
+    "description": "Forall quantifier"
+  },
+  "module": {
+    "prefix": "module",
+    "body": [
+      "module ${1:ModuleName} {",
+      "  ${2:// module body}",
+      "}"
+    ],
+    "description": "CodeQL module"
+  },
+  "qldoc": {
+    "prefix": "doc",
+    "body": [
+      "/**",
+      " * ${1:Description}",
+      " */"
+    ],
+    "description": "QLDoc comment"
+  },
+  "deprecated": {
+    "prefix": "deprecated",
+    "body": [
+      "/**",
+      " * @deprecated ${1:reason}",
+      " */"
+    ],
+    "description": "Deprecated annotation"
+  },
+  "override": {
+    "prefix": "override",
+    "body": "override ${1:ReturnType} ${2:methodName}() { ${3:result = } }",
+    "description": "Override method"
+  },
+  "abstract": {
+    "prefix": "abstract",
+    "body": "abstract ${1:ReturnType} ${2:methodName}();",
+    "description": "Abstract method"
+  },
+  "newtype": {
+    "prefix": "newtype",
+    "body": [
+      "newtype ${1:TypeName} =",
+      "  ${2:Constructor}(${3:params}) {",
+      "    ${4:condition}",
+      "  }"
+    ],
+    "description": "Newtype definition"
+  },
+  "if_then_else": {
+    "prefix": "ite",
+    "body": "if ${1:condition} then ${2:thenBranch} else ${3:elseBranch}",
+    "description": "If-then-else expression"
+  },
+  "result": {
+    "prefix": "result",
+    "body": "result = ${1:expression}",
+    "description": "Result binding"
+  },
+  "this": {
+    "prefix": "this",
+    "body": "this = ${1:expression}",
+    "description": "This binding"
+  },
+  "pragma": {
+    "prefix": "pragma",
+    "body": "pragma[${1:inline}]",
+    "description": "Pragma directive"
+  },
+  "bindingset": {
+    "prefix": "bindingset",
+    "body": "bindingset[${1:variable}]",
+    "description": "Bindingset pragma"
+  },
+  "cached": {
+    "prefix": "cached",
+    "body": [
+      "cached",
+      "${1:ReturnType} ${2:predicateName}() {",
+      "  ${3:// cached predicate body}",
+      "}"
+    ],
+    "description": "Cached predicate"
+  },
+  "query_metadata": {
+    "prefix": "metadata",
+    "body": [
+      "/**",
+      " * @name ${1:Query Name}",
+      " * @description ${2:Query Description}",
+      " * @kind ${3:problem}",
+      " * @id ${4:category/query-id}",
+      " * @severity ${5:warning}",
+      " */"
+    ],
+    "description": "Query metadata"
+  }
+}
