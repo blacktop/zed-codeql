@@ -7,7 +7,7 @@ struct CodeQLExtension {
 }
 
 impl CodeQLExtension {
-    fn find_codeql_cli(&self, worktree: &Worktree) -> Option<String> {
+    fn find_codeql_cli(&mut self, worktree: &Worktree) -> Option<String> {
         // Return cached path if available
         if let Some(path) = &self.cached_binary_path {
             return Some(path.clone());
@@ -15,7 +15,13 @@ impl CodeQLExtension {
 
         // Use Zed's which function to find codeql in PATH
         // This works properly in WASM environment
-        worktree.which("codeql")
+        if let Some(path) = worktree.which("codeql") {
+            // Cache the path for future use
+            self.cached_binary_path = Some(path.clone());
+            Some(path)
+        } else {
+            None
+        }
     }
 }
 
@@ -41,9 +47,6 @@ impl zed::Extension for CodeQLExtension {
             ).to_string()
         })?;
 
-        // Cache the binary path for future use
-        self.cached_binary_path = Some(codeql_path.clone());
-
         Ok(Command {
             command: codeql_path,
             args: vec![
@@ -63,7 +66,7 @@ impl zed::Extension for CodeQLExtension {
         // CodeQL language server configuration options
         // Using conservative defaults that work on most systems
         let settings = serde_json::json!({
-            "codeQL": {
+            "codeql": {
                 "cli": {
                     "executablePath": self.find_codeql_cli(worktree)
                 },
