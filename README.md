@@ -33,6 +33,10 @@ The extension automatically starts the CodeQL language server when you open a Co
 
 The extension searches for CodeQL CLI in your system PATH.
 
+## Credit
+
+Inspired by <https://github.com/pwntester/codeql.nvim>
+
 ## License
 
 MIT Copyright (c) 2025 blacktop
