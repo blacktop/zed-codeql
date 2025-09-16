@@ -1,37 +1,21 @@
-use zed_extension_api::{self as zed, Command, LanguageServerId, Result, Worktree, CodeLabel, CodeLabelSpan};
-
-mod commands;
+use zed_extension_api::{
+    self as zed, CodeLabel, CodeLabelSpan, Command, LanguageServerId, Result, Worktree,
+};
 
 struct CodeQLExtension {
     cached_binary_path: Option<String>,
 }
 
 impl CodeQLExtension {
-    fn find_codeql_cli(&mut self, worktree: &Worktree) -> Option<String> {
+    fn find_codeql_cli(&self, worktree: &Worktree) -> Option<String> {
         // Return cached path if available
         if let Some(path) = &self.cached_binary_path {
             return Some(path.clone());
         }
 
         // Use Zed's which function to find codeql in PATH
-        if let Some(path) = worktree.which("codeql") {
-            self.cached_binary_path = Some(path.clone());
-            return Some(path);
-        }
-
-        // Try common installation paths using Zed's which
-        let possible_commands = vec![
-            "/opt/homebrew/bin/codeql",
-        ];
-
-        for cmd in possible_commands {
-            if let Some(path) = worktree.which(cmd) {
-                self.cached_binary_path = Some(path.clone());
-                return Some(path);
-            }
-        }
-
-        None
+        // This works properly in WASM environment
+        worktree.which("codeql")
     }
 }
 
@@ -48,8 +32,17 @@ impl zed::Extension for CodeQLExtension {
         worktree: &Worktree,
     ) -> Result<Command> {
         let codeql_path = self.find_codeql_cli(worktree).ok_or_else(|| {
-            "CodeQL CLI not found. Please install CodeQL from https://github.com/github/codeql-cli-binaries and ensure it's in your PATH.".to_string()
+            concat!(
+                "CodeQL CLI not found in PATH.\n",
+                "Please install CodeQL CLI:\n",
+                "  • Homebrew: brew install codeql\n",
+                "  • Download: https://github.com/github/codeql-action/releases\n",
+                "Then restart Zed to detect the installation."
+            ).to_string()
         })?;
+
+        // Cache the binary path for future use
+        self.cached_binary_path = Some(codeql_path.clone());
 
         Ok(Command {
             command: codeql_path,
@@ -64,51 +57,37 @@ impl zed::Extension for CodeQLExtension {
 
     fn language_server_workspace_configuration(
         &mut self,
-        _language_server_id: &LanguageServerId,
+        _server_id: &LanguageServerId,
         worktree: &Worktree,
     ) -> Result<Option<serde_json::Value>> {
-        // Enhanced workspace detection
-        let workspace_root = worktree.root_path();
-
-        // Check for various CodeQL workspace indicators
-        let has_ql_files = workspace_root.contains(".ql") || workspace_root.contains(".qll");
-        let has_qlpack = workspace_root.contains("qlpack.yml") || workspace_root.contains("qlpack.yaml");
-        let has_workspace_config = workspace_root.contains("codeql-workspace.yml") ||
-                                   workspace_root.contains(".codeqlrc");
-        let has_codeql_dir = workspace_root.contains(".codeql");
-        let has_database = workspace_root.contains(".db") || workspace_root.contains("codeql-database");
-
-        let is_codeql_workspace = has_ql_files || has_qlpack || has_workspace_config ||
-                                  has_codeql_dir || has_database;
-
-        // Provide comprehensive workspace configuration
-        Ok(Some(serde_json::json!({
+        // CodeQL language server configuration options
+        // Using conservative defaults that work on most systems
+        let settings = serde_json::json!({
             "codeQL": {
                 "cli": {
-                    "executablePath": self.cached_binary_path.clone()
+                    "executablePath": self.find_codeql_cli(worktree)
                 },
                 "runningQueries": {
-                    "memory": 2048,
+                    "numberOfThreads": 2,     // Conservative default for compatibility
+                    "saveCache": false,
+                    "cacheSize": 1024,        // 1GB cache size
+                    "timeout": 600,           // 10 minutes for complex queries
+                    "memory": 1024,           // 1GB memory limit
                     "debug": false,
-                    "maxPaths": 1000,
-                    "timeout": 300
+                    "customLogDirectory": ""
                 },
                 "runningTests": {
-                    "numberOfThreads": 1
+                    "numberOfThreads": 1,     // Single thread for tests
+                    "saveCache": false,
+                    "cacheSize": 512,         // 512MB cache for tests
+                    "timeout": 300,           // 5 minutes for tests
+                    "memory": 512,            // 512MB memory for tests
+                    "customLogDirectory": ""
                 }
-            },
-            "formatting": {
-                "enable": true,
-                "formatOnSave": true,
-                "formatOnType": false
-            },
-            "telemetry": {
-                "enableTelemetry": false
-            },
-            "database": {
-                "autoDownload": is_codeql_workspace
             }
-        })))
+        });
+
+        Ok(Some(settings))
     }
 
     fn label_for_completion(
@@ -116,39 +95,34 @@ impl zed::Extension for CodeQLExtension {
         _language_server_id: &LanguageServerId,
         completion: zed::lsp::Completion,
     ) -> Option<CodeLabel> {
-        let label = &completion.label;
-        let detail = completion.detail.as_deref();
-        let kind = completion.kind?;
-
-        // Create CodeQL-specific completion labels
-        match kind {
-            zed::lsp::CompletionKind::Class => {
+        match completion.kind? {
+            zed::lsp::CompletionKind::Class | zed::lsp::CompletionKind::Module => {
+                let label = completion.label.clone();
+                let name_span = CodeLabelSpan::literal(&label, Some("type".to_string()));
                 Some(CodeLabel {
-                    code: format!("class {}", label),
-                    spans: vec![CodeLabelSpan::code_range(0..label.len() + 6)],
-                    filter_range: 6..6 + label.len(),
+                    code: label,
+                    spans: vec![name_span],
+                    filter_range: (0..completion.label.len()).into(),
                 })
             }
             zed::lsp::CompletionKind::Method | zed::lsp::CompletionKind::Function => {
-                let signature = detail.unwrap_or(label.as_str());
+                let label = format!("{}()", completion.label);
+                let name_span =
+                    CodeLabelSpan::literal(&completion.label, Some("function".to_string()));
+                let paren_span = CodeLabelSpan::literal("()", None);
                 Some(CodeLabel {
-                    code: format!("predicate {}", signature),
-                    spans: vec![CodeLabelSpan::code_range(0..signature.len() + 10)],
-                    filter_range: 10..10 + label.len(),
-                })
-            }
-            zed::lsp::CompletionKind::Module => {
-                Some(CodeLabel {
-                    code: format!("module {}", label),
-                    spans: vec![CodeLabelSpan::code_range(0..label.len() + 7)],
-                    filter_range: 7..7 + label.len(),
+                    code: label.clone(),
+                    spans: vec![name_span, paren_span],
+                    filter_range: (0..completion.label.len()).into(),
                 })
             }
             zed::lsp::CompletionKind::Keyword => {
+                let name_span =
+                    CodeLabelSpan::literal(&completion.label, Some("keyword".to_string()));
                 Some(CodeLabel {
-                    code: label.clone(),
-                    spans: vec![CodeLabelSpan::code_range(0..label.len())],
-                    filter_range: 0..label.len(),
+                    code: completion.label.clone(),
+                    spans: vec![name_span],
+                    filter_range: (0..completion.label.len()).into(),
                 })
             }
             _ => None,
@@ -160,32 +134,27 @@ impl zed::Extension for CodeQLExtension {
         _language_server_id: &LanguageServerId,
         symbol: zed::lsp::Symbol,
     ) -> Option<CodeLabel> {
-        let name = &symbol.name;
+        let name = symbol.name.clone();
 
-        match symbol.kind {
-            zed::lsp::SymbolKind::Class => {
-                Some(CodeLabel {
-                    code: format!("class {}", name),
-                    spans: vec![CodeLabelSpan::code_range(0..name.len() + 6)],
-                    filter_range: 6..6 + name.len(),
-                })
+        let (code, highlight) = match symbol.kind {
+            zed::lsp::SymbolKind::Class | zed::lsp::SymbolKind::Interface => {
+                (format!("class {}", name), Some("type".to_string()))
             }
-            zed::lsp::SymbolKind::Function | zed::lsp::SymbolKind::Method => {
-                Some(CodeLabel {
-                    code: format!("predicate {}", name),
-                    spans: vec![CodeLabelSpan::code_range(0..name.len() + 10)],
-                    filter_range: 10..10 + name.len(),
-                })
+            zed::lsp::SymbolKind::Method | zed::lsp::SymbolKind::Function => {
+                (format!("{}()", name), Some("function".to_string()))
             }
             zed::lsp::SymbolKind::Module | zed::lsp::SymbolKind::Namespace => {
-                Some(CodeLabel {
-                    code: format!("module {}", name),
-                    spans: vec![CodeLabelSpan::code_range(0..name.len() + 7)],
-                    filter_range: 7..7 + name.len(),
-                })
+                (format!("module {}", name), Some("module".to_string()))
             }
-            _ => None,
-        }
+            _ => (name.clone(), None),
+        };
+
+        let name_span = CodeLabelSpan::literal(&name, highlight);
+        Some(CodeLabel {
+            code: code.clone(),
+            spans: vec![name_span],
+            filter_range: (0..name.len()).into(),
+        })
     }
 }
 

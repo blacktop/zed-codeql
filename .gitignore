@@ -24,3 +24,7 @@ Thumbs.db
 # CodeQL databases
 *.codeql/
 /databases/
+
+# AI files
+AGENTS.md
+ARCHITECTURE.md

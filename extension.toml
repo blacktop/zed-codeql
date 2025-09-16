@@ -1,6 +1,6 @@
 id = "codeql"
 name = "CodeQL"
-description = "CodeQL language support and query execution for Zed"
+description = "CodeQL language support with syntax highlighting and language server for Zed"
 version = "0.1.0"
 schema_version = 1
 authors = ["blacktop"]
@@ -12,7 +12,4 @@ languages = ["CodeQL"]
 
 [grammars.ql]
 repository = "https://github.com/tree-sitter/tree-sitter-ql"
-commit = "bd087020f0d8c183080ca615d38de0ec827aeeaf"
-
-[grammars.yaml]
-repository = "https://github.com/tree-sitter/tree-sitter-yaml"
+commit = "1fd627a4e8bff8c24c11987474bd33112bead857"

@@ -6,42 +6,35 @@ CodeQL language support for [Zed](https://zed.dev).
 
 - Syntax highlighting for `.ql`, `.qll`, `.qlref`, and `.dbscheme` files
 - Language server integration with CodeQL CLI
-- Code completion with CodeQL-specific formatting
-- Go to definition, hover documentation, and diagnostics
-- Code folding, auto-indentation, and bracket matching
-- Outline view for code navigation
-- Syntax injection for SQL, JavaScript, HTML, JSON, and YAML in strings
-- Support for QL pack configuration files (`qlpack.yml`)
+- Code completion
+- Go to definition
+- Hover documentation
+- Error diagnostics
+
+## Requirements
+
+CodeQL CLI must be installed and available in your PATH.
+
+### Installation via Homebrew
+```bash
+brew install codeql
+```
+
+### Manual Installation
+Download from [GitHub CodeQL releases](https://github.com/github/codeql-action/releases).
 
 ## Installation
 
-### Prerequisites
+Install from Zed's extension gallery or build from source.
 
-Install CodeQL CLI:
-```bash
-# macOS with Homebrew
-brew install --cask codeql
+## Language Server
 
-# Or download from https://github.com/github/codeql-cli-binaries
-```
+The extension automatically starts the CodeQL language server when you open a CodeQL file.
 
-### Installing the Extension
-
-Install via Zed's extension manager.
-
-## Configuration
-
-The extension looks for CodeQL CLI in:
-- `/opt/homebrew/bin/codeql` (Homebrew)
-- System PATH
-
-## Language Server Settings
-
-The extension configures the CodeQL language server with:
-- Format on save enabled
-- 2GB memory limit for running queries
-- 300 second timeout for queries
-- Automatic database downloads for CodeQL workspaces
+The extension searches for CodeQL CLI in:
+1. System PATH
+2. `/opt/homebrew/bin/codeql`
+3. `/usr/local/bin/codeql`
 
 ## License
 
